@@ -25,7 +25,7 @@ fn main() {
 
 fn set_slot(slot: &i32) {
     
-    let disk_path = Path::new("/dev/block/sde");
+    let disk_path = Path::new("/dev/sde");
     let size = gpt::disk::LogicalBlockSize::Lb4096;
 
     let header = gpt::header::read_header(disk_path, size).unwrap();
