@@ -1,5 +1,5 @@
 [package]
-name = "pmos-sdm845-bootctl"
+name = "sdm845-abootctl"
 version = "0.1.0"
 authors = ["aissa <aissa.zenaida@pm.me>"]
 edition = "2018"

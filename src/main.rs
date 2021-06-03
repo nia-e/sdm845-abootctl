@@ -7,7 +7,7 @@ use std::iter::FromIterator;
 fn main() {
 
     // CLI stuff
-    let matches = App::new("bootctl")
+    let matches = App::new("abootctl")
         .version("0.1")
         .author("Aissa Z. B. <aissa.zenaida@pm.me>")
         .about("Switch active bootloader slot on SDM845 OnePlus devices")
@@ -31,7 +31,7 @@ fn set_slot(slot: &i32) {
     let header = gpt::header::read_header(disk_path, size).unwrap();
     let partitions_btm = gpt::partition::read_partitions(disk_path, &header, size).unwrap();
     //Change btreemap to vector
-    let mut partitions = Vec::from_iter(partitions_btm);
+    let partitions = Vec::from_iter(partitions_btm);
     //Find relevant partitions
     let boot_a = &partitions[10].1;
     let boot_b = &partitions[38].1;
