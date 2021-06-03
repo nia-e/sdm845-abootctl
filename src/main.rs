@@ -4,8 +4,6 @@ use clap::{Arg, App};
 use std::path::Path;
 use std::iter::FromIterator;
 
-pub enum 
-
 fn main() {
 
     // CLI stuff
@@ -27,7 +25,7 @@ fn main() {
 
 fn set_slot(slot: &i32) {
     
-    let disk_path = Path::new("/dev/sde");
+    let disk_path = Path::new("/dev/block/sde");
     let size = gpt::disk::LogicalBlockSize::Lb4096;
 
     let header = gpt::header::read_header(disk_path, size).unwrap();
