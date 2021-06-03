@@ -112,7 +112,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "pmos-sdm845-bootctl"
+name = "sdm845-abootctl"
 version = "0.1.0"
 dependencies = [
  "clap",
