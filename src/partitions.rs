@@ -15,7 +15,7 @@ fn get_partitions_for_dev(dev_path: &Path) -> Result<BTreeMap<u32, Partition>, i
 
 pub fn get_boot_partitions() -> (Partition, Partition) {
 	//Open relevant GPT stuff
-	
+
 	let blockdevs = block_utils::get_block_devices();
 	assert!(!blockdevs.is_err());
 
@@ -44,10 +44,10 @@ pub fn get_boot_partitions() -> (Partition, Partition) {
 	// 	}
 	// }
 
-	
+
 
 	// let boot_a = partitions.values().find(|x| x.name == "boot_a").unwrap();
-	
+
 
 	return (boot_a, boot_b)
 }

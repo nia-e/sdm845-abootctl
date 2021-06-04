@@ -1,6 +1,7 @@
-use clap::{Arg, App};
+use clap::{Arg, App, SubCommand};
 use modular_bitfield::prelude::*;
 use std::convert::TryInto;
+use std::process;
 
 mod partitions;
 
@@ -16,67 +17,81 @@ struct SlotInfo {
 
 fn main() {
     // CLI stuff
+    //Ideas: -r read-only (default), --set or -s set to SLOT, --debug dump all flags
     let matches = App::new("abootctl")
-        .version("0.3.0")
-        .author("Aissa Z. B. <aissa.zenaida@pm.me>")
-        .author("Caleb C. <caleb@connolly.tech>")
+        .version("0.4.0")
+        .author("Caleb C. <caleb@connolly.tech>, Aissa Z. B. <aissa.zenaida@pm.me>")
         .about("Switch active bootloader slot on SDM845 OnePlus devices. THIS MAY BRICK YOUR DEVICE - USE WITH CARE")
-        .arg(Arg::with_name("SLOT")
-            .help("Slot to set as active (0 or 1)")
-            .index(1))
+        .arg(Arg::with_name("mode")
+            .short("m")
+            .long("mode")
+            .required(true)
+            .takes_value(true)
+            .value_name("MODE")
+            .help("Mode of operation (r/w)"))
+        .arg(Arg::with_name("slot")
+            .short("s")
+            .long("slot")
+            .required(true)
+            .takes_value(true)
+            .value_name("SLOT")
+            .help("Slot - sets as active boot slot if in write mode, reads slot data if in read mode"))
+        .arg(Arg::with_name("debug")
+            .long("debug")
+            .help("Dumps entire header for boot partitions to standard output"))
         .get_matches();
 
     //TODO: read bootable flag option
-    let slot = matches.value_of("SLOT").unwrap().parse::<i32>().unwrap();
+    let mode: &str;
+    let debug: bool;
+    let slot: i32;
 
-    let (slot_a, slot_b) = get_slot_info();
-    println!("Slot A info: {:?}", slot_a);
-    println!("Slot B info: {:?}", slot_b);
+    if matches.is_present("debug") {
+        debug = true;
+    } else {debug = false; }
 
-    //set_slot(&slot, readonly);
+    let (flags_a, flags_b, slot_a, slot_b) = get_slot_info(debug);
+
+    mode = matches.value_of("mode").unwrap_or("r");
+    slot = matches.value_of("slot").unwrap().parse::<i32>().unwrap_or(-1);
+
+    //Checking CLI args
+    if !(mode.eq("r") || mode.eq("w")) { panic!("ERROR: Invalid mode specified"); }
+    if !(slot == 0 || slot == 1) { panic!("ERROR: Invalid slot specified"); }
+
+    if mode.eq("r") {
+        println!("Slot A info: {:?}", slot_a);
+        println!("Slot B info: {:?}", slot_b);
+    }
+
+    else { set_slot(&slot, flags_a, flags_b); }
 }
 
-fn get_slot_info() -> (SlotInfo, SlotInfo) {
+fn get_slot_info(debug: bool) -> (u64, u64, SlotInfo, SlotInfo) {
     let (boot_a, boot_b) = partitions::get_boot_partitions();
-    println!("boot_a: {:#018b} boot_b: {:#018b}", boot_a.flags >> 48, boot_b.flags >> 48);
+    if debug { println!("boot_a: {:#018b} boot_b: {:#018b}", boot_a.flags >> 48, boot_b.flags >> 48); }
     let slot_a = SlotInfo::from_bytes([(((boot_a.flags >> 48) & 0xFF)).try_into().unwrap()]);
     let slot_b = SlotInfo::from_bytes([(((boot_b.flags >> 48) & 0xFF)).try_into().unwrap()]);
-    return (slot_a, slot_b)
+    return (boot_a.flags >> 48, boot_b.flags >> 48, slot_a, slot_b)
 }
 
-fn set_slot(slot: &i32, readonly: bool) {
-    //Find relevant partitions
-    //Flags are read first even though they should never differ from baseline, just in case
+fn set_slot(slot: &i32, flags_a: u64, flags_b: u64) {
 
-    
-    
-    // let mut boot_a_flags = .unwrap().flags;//*&partitions[&BOOT_A_PARTNUM].flags;
-    // let mut boot_b_flags = *&partitions[&BOOT_B_PARTNUM].flags;
+    if *slot as i32 == 0 {
+        //Change _a and _b boot partition flags
+        let new_flags_a = enable_aboot(flags_a);
+        let new_flags_b = disable_aboot(flags_b);
+    }
+     else if *slot as i32 == 1 {
+         //Same as above
+         let new_flags_b = enable_aboot(flags_a);
+         let new_flags_a = disable_aboot(flags_a);
+    }
+    else { panic!("Error: could not read partition table headers or invalid slot number specified"); }
 
-    // if *slot as i32 == 0 {
+    //Get actual boot partition objects
+    let (boot_a, boot_b) = partitions::get_boot_partitions();
 
-    //     //Change _a and _b boot partition flags
-    //     boot_a_flags = enable_aboot(boot_a_flags);
-    //     boot_b_flags = disable_aboot(boot_b_flags);
-    // }
-    // else if *slot as i32 == 1 {
-
-    //     //Same as above
-    //     boot_b_flags = enable_aboot(boot_b_flags);
-    //     boot_a_flags = disable_aboot(boot_a_flags);
-    // }
-    // else { eprintln!("Error: could not read partition table headers or invalid slot number specified"); process::exit(1); }
-
-    // //Break here if readonly
-    // if readonly {
-
-    //     println!("boot_a: {} boot_b: {}", boot_a_flags, boot_b_flags);
-    //     process::exit(0);
-    // }
-
-    // //Rewrite changes to GPT table
-    // let mut new_boot_a = partitions[&BOOT_A_PARTNUM].clone();
-    // let mut new_boot_b = partitions[&BOOT_B_PARTNUM].clone();
 
     // new_boot_a.flags = boot_a_flags;
     // new_boot_b.flags = boot_b_flags;
