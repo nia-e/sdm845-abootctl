@@ -21,7 +21,7 @@ fn main() {
             .index(1))
         .arg(Arg::with_name("readonly")
             .short("r")
-            .help("Reads value of boot partition headers without changing it"))
+            .help("Reads value of boot partition headers without changing them"))
         .get_matches();
 
     //TODO: read bootable flag option
