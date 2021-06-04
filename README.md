@@ -4,14 +4,15 @@ Utility to control boot slots on OnePlus SDM845 devices from mainline Linux by f
 WARNING: THIS MAY BRICK YOUR DEVICE, WIPE YOUR PARTITION TABLE, OR AWAKEN THE GREAT OLD ONES OF R'LYEH. NO MATTER WHAT THIS UTILITY CAUSES, MATERIAL OR ESOTERIC, YOU HAVE BEEN WARNED.
 ```
 USAGE:
-    sdm845-abootctl [FLAGS] <SLOT>
+    sdm845-abootctl [FLAGS] --mode <MODE> --slot <SLOT>
 
 FLAGS:
+        --debug      Dumps entire header for boot partitions to standard output
     -h, --help       Prints help information
-    -r               Read-only mode: reads value of boot partition headers without changing them
     -V, --version    Prints version information
 
-ARGS:
-    <SLOT>    Slot to set as active (0 or 1)
+OPTIONS:
+    -m, --mode <MODE>    Mode of operation (r/w)
+    -s, --slot <SLOT>    Slot - sets as active boot slot if in write mode, reads slot data if in read mode
 ```
 Written by Caleb C. <caleb@connolly.tech> and Aissa Z. B. <aissa.zenaida@pm.me>
