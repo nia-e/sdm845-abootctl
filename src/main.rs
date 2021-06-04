@@ -19,11 +19,11 @@ fn main() {
 
     let slot = matches.value_of("SLOT").unwrap().parse::<i32>().unwrap();
 
-    unsafe { set_slot(&slot); }
+    set_slot(&slot);
     // println!("Invalid SLOT number; see bootctl --help");
 }
 
-unsafe fn set_slot(slot: &i32) {
+fn set_slot(slot: &i32) {
 
     let disk_path = Path::new("/dev/sde");
     let size = gpt::disk::LogicalBlockSize::Lb4096;
@@ -34,30 +34,36 @@ unsafe fn set_slot(slot: &i32) {
     let partitions = Vec::from_iter(partitions_btm);
     //Find relevant partitions
 	//This is probably partly redundant but it works
-	if *slot as i32 == 0 {
+	unsafe {
 
-    	let mut boot_y = *&partitions[10].1.flags;
-    	let mut boot_n = *&partitions[38].1.flags;
-		//Flags are read first even though they should never differ from baseline, just in case
-		boot_y = enable_aboot(boot_y);
-		boot_n = disable_aboot(boot_n);
-		//Prepare changes to rewrite
-		let a_flags = gpt::partition::PartitionAttributes::from_bits_unchecked(boot_y);
-		let b_flags = gpt::partition::PartitionAttributes::from_bits_unchecked(boot_n);
+        let mut boot_y: u64 = 0;
+        let mut boot_n: u64 = 0;
+
+		if *slot as i32 == 0 {
+
+    		boot_y = *&partitions[10].1.flags;
+    		boot_n = *&partitions[38].1.flags;
+			//Flags are read first even though they should never differ from baseline, just in case
+			boot_y = enable_aboot(boot_y);
+			boot_n = disable_aboot(boot_n);
+			//Prepare changes to rewrite
+			let a_flags = gpt::partition::PartitionAttributes::from_bits_unchecked(boot_y);
+			let b_flags = gpt::partition::PartitionAttributes::from_bits_unchecked(boot_n);
+		}
+		else if *slot as i32 == 1 {
+
+			//Same as above
+			boot_y = *&partitions[38].1.flags;
+    		boot_n = *&partitions[10].1.flags;
+			boot_y = enable_aboot(boot_y);
+			boot_n = disable_aboot(boot_n);
+			let a_flags = gpt::partition::PartitionAttributes::from_bits_unchecked(boot_n);
+			let b_flags = gpt::partition::PartitionAttributes::from_bits_unchecked(boot_y);
+		}
+
+	    //Rewrite changes to GPT table
+    	println!("active slot: {}; inactive slot: {}", boot_y, boot_n);
 	}
-	else if *slot as i32 == 1 {
-
-		//Same as above
-		let mut boot_y = *&partitions[38].1.flags;
-    	let mut boot_n = *&partitions[10].1.flags;
-		boot_y = enable_aboot(boot_y);
-		boot_n = disable_aboot(boot_n);
-		let a_flags = gpt::partition::PartitionAttributes::from_bits_unchecked(boot_n);
-		let b_flags = gpt::partition::PartitionAttributes::from_bits_unchecked(boot_y);
-	}
-
-	//Rewrite changes to GPT table
-    println!("boot_a: {}; boot_b: {}", boot_a, boot_b);
 }
 
 fn enable_aboot(bootflags: u64) -> u64 {
