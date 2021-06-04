@@ -1,9 +1,9 @@
-extern crate clap;
 use gpt;
 use clap::{Arg, App};
 use std::path::Path;
 use std::process;
 
+//Global constants
 const BOOT_A_PARTNUM: u32 = 11;
 const BOOT_B_PARTNUM: u32 = 39;
 const DEVICE_PATH: &str = "/dev/sde";
