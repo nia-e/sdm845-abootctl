@@ -12,7 +12,7 @@ fn main() {
 
     // CLI stuff
     let matches = App::new("abootctl")
-        .version("0.2.0")
+        .version("0.3.0")
         .author("Caleb C. <caleb@connolly.tech>, Aissa Z. B. <aissa.zenaida@pm.me>")
         .about("Switch active bootloader slot on SDM845 OnePlus devices. THIS MAY BRICK YOUR DEVICE - USE WITH CARE")
         .arg(Arg::with_name("SLOT")
@@ -21,7 +21,7 @@ fn main() {
             .index(1))
         .arg(Arg::with_name("readonly")
             .short("r")
-            .help("Reads value of boot partition headers without changing them"))
+            .help("Read-only mode: reads value of boot partition headers without changing them"))
         .get_matches();
 
     //TODO: read bootable flag option
