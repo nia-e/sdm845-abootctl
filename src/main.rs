@@ -2,13 +2,13 @@ extern crate clap;
 use gpt;
 use clap::{Arg, App};
 use std::path::Path;
-use std::iter::FromIterator;
+use std::process;
 
 fn main() {
 
     // CLI stuff
     let matches = App::new("abootctl")
-        .version("0.1.1")
+        .version("0.2")
         .author("Caleb C., Aissa Z. B. <aissa.zenaida@pm.me>")
         .about("Switch active bootloader slot on SDM845 OnePlus devices")
         .arg(Arg::with_name("SLOT")
@@ -25,45 +25,53 @@ fn main() {
 
 fn set_slot(slot: &i32) {
 
+    //Open relevant GPT stuff
     let disk_path = Path::new("/dev/sde");
     let size = gpt::disk::LogicalBlockSize::Lb4096;
 
     let header = gpt::header::read_header(disk_path, size).unwrap();
-    let partitions_btm = gpt::partition::read_partitions(disk_path, &header, size).unwrap();
-    //Change btreemap to vector
-    let partitions = Vec::from_iter(partitions_btm);
+    let mut partitions = gpt::partition::read_partitions(disk_path, &header, size).unwrap();
+    let mut disk = gpt::disk::read_disk(&disk_path).unwrap();
+    //println!("{}", partitions[&10]);
+
     //Find relevant partitions
-    //This is probably partly redundant but it works
-    unsafe {
+    //Flags are read first even though they should never differ from baseline, just in case
+    let mut boot_a_flags = *&partitions[&10].flags;
+    let mut boot_b_flags = *&partitions[&38].flags;
+    let mut success: bool = false;
 
-        let mut boot_y: u64 = 0;
-        let mut boot_n: u64 = 0;
+    if *slot as i32 == 0 {
 
-        if *slot as i32 == 0 {
-
-            boot_y = *&partitions[10].1.flags;
-            boot_n = *&partitions[38].1.flags;
-            //Flags are read first even though they should never differ from baseline, just in case
-            boot_y = enable_aboot(boot_y);
-            boot_n = disable_aboot(boot_n);
-            //Prepare changes to rewrite
-            let a_flags = gpt::partition::PartitionAttributes::from_bits_unchecked(boot_y);
-            let b_flags = gpt::partition::PartitionAttributes::from_bits_unchecked(boot_n);
-        }
-        else if *slot as i32 == 1 {
-
-            //Same as above
-            boot_y = *&partitions[38].1.flags;
-            boot_n = *&partitions[10].1.flags;
-            boot_y = enable_aboot(boot_y);
-            boot_n = disable_aboot(boot_n);
-            let a_flags = gpt::partition::PartitionAttributes::from_bits_unchecked(boot_n);
-            let b_flags = gpt::partition::PartitionAttributes::from_bits_unchecked(boot_y);
-        }
-
-        //Rewrite changes to GPT table
-        println!("active slot: {}; inactive slot: {}", boot_y, boot_n);
+        boot_a_flags = enable_aboot(boot_a_flags);
+        boot_b_flags = disable_aboot(boot_b_flags);
+        success = true;
     }
+    else if *slot as i32 == 1 {
+
+        //Same as above
+        boot_b_flags = enable_aboot(boot_b_flags);
+        boot_a_flags = disable_aboot(boot_a_flags);
+        success = true;
+    }
+    //else { a_flags = false; b_flags = false; }
+
+    //Check flags have been updated; sanity
+    //Rewrite changes to GPT table
+    if success {
+
+        let mut new_boot_a = partitions[&10].clone();
+        let mut new_boot_b = partitions[&38].clone();
+
+        new_boot_a.flags = boot_a_flags;
+        new_boot_b.flags = boot_b_flags;
+        partitions.insert(11, new_boot_a);
+        partitions.insert(39, new_boot_b);
+        disk.update_partitions(partitions).unwrap();
+        disk.write().unwrap();
+    }
+
+    else { eprintln!("Error: could not read partition table headers or invalid slot number specified"); process::exit(1); }
+    //println!("active slot: {}; inactive slot: {}", boot_y, boot_n);
 }
 
 fn enable_aboot(bootflags: u64) -> u64 {
