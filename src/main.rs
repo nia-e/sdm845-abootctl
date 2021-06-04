@@ -27,11 +27,7 @@ fn main() {
     //TODO: read bootable flag option
     let slot = matches.value_of("SLOT").unwrap().parse::<i32>().unwrap();
     let readonly: bool;
-    match matches.occurrences_of("r") {
-        0 => readonly = false,
-        1 => readonly = true,
-        _ => {eprintln!("This should never trigger. What have you done, you monster?"); process::exit(1)},
-    }
+    if matches.is_present("r") { readonly = true; } else { readonly = false; }
 
     set_slot(&slot, readonly);
 }
