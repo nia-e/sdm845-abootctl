@@ -8,23 +8,23 @@ fn main() {
 
     // CLI stuff
     let matches = App::new("abootctl")
-        .version("0.1")
-        .author("Aissa Z. B. <aissa.zenaida@pm.me>")
+        .version("0.1.1")
+        .author("Caleb C., Aissa Z. B. <aissa.zenaida@pm.me>")
         .about("Switch active bootloader slot on SDM845 OnePlus devices")
         .arg(Arg::with_name("SLOT")
             .help("Slot to set as active (0 or 1)")
             .required(true)
             .index(1))
         .get_matches();
-    
+
     let slot = matches.value_of("SLOT").unwrap().parse::<i32>().unwrap();
-    
-    set_slot(&slot);
+
+    unsafe { set_slot(&slot); }
     // println!("Invalid SLOT number; see bootctl --help");
 }
 
-fn set_slot(slot: &i32) {
-    
+unsafe fn set_slot(slot: &i32) {
+
     let disk_path = Path::new("/dev/sde");
     let size = gpt::disk::LogicalBlockSize::Lb4096;
 
@@ -33,8 +33,47 @@ fn set_slot(slot: &i32) {
     //Change btreemap to vector
     let partitions = Vec::from_iter(partitions_btm);
     //Find relevant partitions
-    let boot_a = &partitions[10].1;
-    let boot_b = &partitions[38].1;
+	//This is probably partly redundant but it works
+	if *slot as i32 == 0 {
 
-    println!("boot_a: {}; boot_b: {}", boot_a.flags, boot_b.flags);
+    	let mut boot_y = *&partitions[10].1.flags;
+    	let mut boot_n = *&partitions[38].1.flags;
+		//Flags are read first even though they should never differ from baseline, just in case
+		boot_y = enable_aboot(boot_y);
+		boot_n = disable_aboot(boot_n);
+		//Prepare changes to rewrite
+		let a_flags = gpt::partition::PartitionAttributes::from_bits_unchecked(boot_y);
+		let b_flags = gpt::partition::PartitionAttributes::from_bits_unchecked(boot_n);
+	}
+	else if *slot as i32 == 1 {
+
+		//Same as above
+		let mut boot_y = *&partitions[38].1.flags;
+    	let mut boot_n = *&partitions[10].1.flags;
+		boot_y = enable_aboot(boot_y);
+		boot_n = disable_aboot(boot_n);
+		let a_flags = gpt::partition::PartitionAttributes::from_bits_unchecked(boot_n);
+		let b_flags = gpt::partition::PartitionAttributes::from_bits_unchecked(boot_y);
+	}
+
+	//Rewrite changes to GPT table
+    println!("boot_a: {}; boot_b: {}", boot_a, boot_b);
+}
+
+fn enable_aboot(bootflags: u64) -> u64 {
+
+	//Sets 5th bit to 1, sets active boot partition
+	let mut t_bootflags = bootflags;
+	t_bootflags |= 0b0000_1000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000;
+	//KEEPING THIS OFF, MAY BRICK IF ENABLED
+	//bootflags &= 0b1111_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000;
+	return t_bootflags;
+}
+
+fn disable_aboot(bootflags: u64) -> u64 {
+
+	//Sets 5th bit to 0, unsets active boot partition
+	let mut t_bootflags = bootflags;
+	t_bootflags &= 0b0000_1000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000;
+	return t_bootflags;
 }
