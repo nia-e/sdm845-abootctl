@@ -55,9 +55,7 @@ fn set_slot(slot: &i32) {
     }
     else { eprintln!("Error: could not read partition table headers or invalid slot number specified"); process::exit(1); }
 
-    //Check flags have been updated; sanity
     //Rewrite changes to GPT table
-
     let mut new_boot_a = partitions[&BOOT_A_PARTNUM].clone();
     let mut new_boot_b = partitions[&BOOT_B_PARTNUM].clone();
 
