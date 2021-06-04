@@ -8,7 +8,7 @@ fn main() {
 
     // CLI stuff
     let matches = App::new("abootctl")
-        .version("0.2")
+        .version("0.2.0")
         .author("Caleb C., Aissa Z. B. <aissa.zenaida@pm.me>")
         .about("Switch active bootloader slot on SDM845 OnePlus devices. THIS MAY BRICK YOUR DEVICE - USE WITH CARE")
         .arg(Arg::with_name("SLOT")

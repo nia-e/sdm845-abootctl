@@ -1,6 +1,6 @@
 [package]
 name = "sdm845-abootctl"
-version = "0.2"
+version = "0.2.0"
 authors = ["aissa <aissa.zenaida@pm.me>", "caleb"]
 edition = "2018"
 
