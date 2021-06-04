@@ -5,5 +5,10 @@ authors = ["aissa <aissa.zenaida@pm.me>", "caleb <caleb@connolly.tech>"]
 edition = "2018"
 
 [dependencies]
-gpt = "2.0.0"
+gpt = { git = "https://github.com/calebccff/gpt", branch = "unknown-partition-type" }
 clap = "2.33.3"
+block-utils = "0.10.2"
+modular-bitfield = "0.11.2"
+
+# [patch]
+# gpt = { git = "https://github.com/calebccff/gpt", branch = "unknown-partition-types" }
