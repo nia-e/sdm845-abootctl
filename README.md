@@ -4,10 +4,11 @@ Utility to control boot slots on OnePlus SDM845 devices from mainline Linux by f
 WARNING: THIS MAY BRICK YOUR DEVICE, WIPE YOUR PARTITION TABLE, OR AWAKEN THE GREAT OLD ONES OF R'LYEH. NO MATTER WHAT THIS UTILITY CAUSES, MATERIAL OR ESOTERIC, YOU HAVE BEEN WARNED.
 ```
 USAGE:
-    sdm845-abootctl <SLOT>
+    sdm845-abootctl [FLAGS] <SLOT>
 
 FLAGS:
     -h, --help       Prints help information
+    -r               Reads value of boot partition headers without changing it
     -V, --version    Prints version information
 
 ARGS:
