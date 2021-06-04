@@ -36,8 +36,8 @@ fn set_slot(slot: &i32) {
 
     //Find relevant partitions
     //Flags are read first even though they should never differ from baseline, just in case
-    let mut boot_a_flags = *&partitions[&10].flags;
-    let mut boot_b_flags = *&partitions[&38].flags;
+    let mut boot_a_flags = *&partitions[&11].flags;
+    let mut boot_b_flags = *&partitions[&39].flags;
     let mut success: bool = false;
 
     if *slot as i32 == 0 {
@@ -59,8 +59,8 @@ fn set_slot(slot: &i32) {
     //Rewrite changes to GPT table
     if success {
 
-        let mut new_boot_a = partitions[&10].clone();
-        let mut new_boot_b = partitions[&38].clone();
+        let mut new_boot_a = partitions[&11].clone();
+        let mut new_boot_b = partitions[&39].clone();
 
         new_boot_a.flags = boot_a_flags;
         new_boot_b.flags = boot_b_flags;
