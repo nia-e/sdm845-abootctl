@@ -81,6 +81,6 @@ fn disable_aboot(bootflags: u64) -> u64 {
 
     //Sets 5th bit to 0, unsets active boot partition
     let mut tmp_bootflags = bootflags;
-    tmp_bootflags &= 0b0000_1000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000;
+    tmp_bootflags &= 0b1111_0111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111;
     return tmp_bootflags;
 }
