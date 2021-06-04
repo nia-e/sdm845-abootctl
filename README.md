@@ -14,4 +14,4 @@ FLAGS:
 ARGS:
     <SLOT>    Slot to set as active (0 or 1)
 ```
-Written by Aissa Z. B. <aissa.zenaida@pm.me> with great help from Caleb C. <caleb@connolly.tech>
+Written by Caleb C. <caleb@connolly.tech> and Aissa Z. B. <aissa.zenaida@pm.me>
