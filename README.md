@@ -8,7 +8,7 @@ USAGE:
 
 FLAGS:
     -h, --help       Prints help information
-    -r               Reads value of boot partition headers without changing it
+    -r               Reads value of boot partition headers without changing them
     -V, --version    Prints version information
 
 ARGS:
