@@ -8,7 +8,11 @@ USAGE:
 
 FLAGS:
     -h, --help       Prints help information
+<<<<<<< HEAD
     -r               Read-only mode: reads value of boot partition headers without changing them
+=======
+    -r               Reads value of boot partition headers without changing them
+>>>>>>> 8d8d275e1e448bafa4d4708cf0b169caa15aca6c
     -V, --version    Prints version information
 
 ARGS:
