@@ -82,7 +82,7 @@ fn set_slot(slot: &i32, flags_a: u64, flags_b: u64) {
     }
     else if *slot as i32 == 1 {
         //Same as above
-        new_flags_b = enable_aboot(flags_a);
+        new_flags_b = enable_aboot(flags_b);
         new_flags_a = disable_aboot(flags_a);
     }
     else { panic!("Error: could not read partition table headers or invalid slot number specified"); }
