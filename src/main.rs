@@ -42,12 +42,8 @@ fn main() {
 
     //TODO: read bootable flag option
     let mode: &str;
-    let debug: bool;
     let slot: i32;
-
-    if matches.is_present("debug") {
-        debug = true;
-    } else {debug = false; }
+    let debug = matches.is_present(debug);
 
     let (flags_a, flags_b, slot_a, slot_b) = get_slot_info(debug);
 
