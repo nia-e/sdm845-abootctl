@@ -1,4 +1,4 @@
-use clap::{App, Arg};
+use clap::{App, Arg, arg_enum, value_t};
 use modular_bitfield::prelude::*;
 use std::convert::TryInto;
 
@@ -16,6 +16,12 @@ struct SlotInfo {
     is_unbootable: B1,
 }
 
+arg_enum!{
+    enum Mode {
+        r,
+        w
+    }
+}
 fn main() {
     // CLI stuff
     let matches = App::new("abootctl")
@@ -25,15 +31,15 @@ fn main() {
         .arg(Arg::with_name("mode")
             .short("m")
             .long("mode")
-            .required(true)
-            .takes_value(true)
+            .default_value("r")
+            .possible_values(&Mode::variants())
             .value_name("MODE")
-            .help("Mode of operation (r/w)"))
+            .help("Mode of operation"))
         .arg(Arg::with_name("slot")
             .short("s")
             .long("slot")
             .required(true)
-            .takes_value(true)
+            .possible_values(&["0", "1"])
             .value_name("SLOT")
             .help("Slot - sets as active boot slot if in write mode, reads slot data if in read mode"))
         .arg(Arg::with_name("debug")
@@ -42,28 +48,13 @@ fn main() {
         .get_matches();
 
     //TODO: read bootable flag option
-    let mode: &str;
-    let slot: i32;
+    let mode = value_t!(matches, "MODE", Mode).unwrap_or_else(|x| x.exit());
+    let slot = value_t!(matches, "SLOT", i32).unwrap_or_else(|x| x.exit());
     let debug = matches.is_present("debug");
 
     let (flags_a, flags_b, slot_a, slot_b) = get_slot_info(debug);
 
-    mode = matches.value_of("mode").unwrap_or("r");
-    slot = matches
-        .value_of("slot")
-        .unwrap()
-        .parse::<i32>()
-        .unwrap_or(-1);
-
-    //Checking CLI args
-    if !(mode.eq("r") || mode.eq("w")) {
-        panic!("ERROR: Invalid mode specified");
-    }
-    if !(slot == 0 || slot == 1) {
-        panic!("ERROR: Invalid slot specified");
-    }
-
-    if mode.eq("r") {
+    if mode == Mode::r {
         println!("Slot A info: {:?}", slot_a);
         println!("Slot B info: {:?}", slot_b);
     } else {
