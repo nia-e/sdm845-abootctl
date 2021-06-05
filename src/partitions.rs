@@ -1,11 +1,13 @@
 use std::path::Path;
 use gpt::partition::{Partition};
+use gpt::disk;
 use std::collections::BTreeMap;
 use std::io;
 
 fn get_partitions_for_dev(dev_path: &Path) -> Result<BTreeMap<u32, Partition>, io::Error> {
+
 	println!("Testing path {}", dev_path.display());
-	let size = gpt::disk::LogicalBlockSize::Lb4096;
+	let size = disk::LogicalBlockSize::Lb4096;
 	let header = gpt::header::read_header(dev_path, size);
 	match header {
 		Ok(header) => gpt::partition::read_partitions(dev_path, &header, size),
@@ -13,7 +15,7 @@ fn get_partitions_for_dev(dev_path: &Path) -> Result<BTreeMap<u32, Partition>, i
 	}
 }
 
-pub fn get_boot_partitions() -> (Partition, Partition) {
+pub fn get_boot_partitions() -> (Partition, Partition, String) {
 	//Open relevant GPT stuff
 
 	let blockdevs = block_utils::get_block_devices();
@@ -44,10 +46,35 @@ pub fn get_boot_partitions() -> (Partition, Partition) {
 	// 	}
 	// }
 
-
-
 	// let boot_a = partitions.values().find(|x| x.name == "boot_a").unwrap();
 
+	return (boot_a, boot_b, dev_path.as_path().to_str().unwrap().to_string());
+}
 
-	return (boot_a, boot_b)
+pub fn set_boot_partitions(boot_a: Partition, boot_b: Partition, path: String) {
+
+    //Opens relevant stuff
+    let path = Path::new(&path);
+    let config = gpt::GptConfig::new();
+    let config = config.writable(true); //config needs to be shadowed here for some reason
+    let mut disk = config.open(&path).unwrap(); //Should be fine since for this function to run get_boot_partitions() must have succeeded
+    let part_table = disk.partitions();
+    let mut new_part_table = part_table.clone();
+
+    for (key, part) in part_table.iter() {
+        if part.name == "boot_a" {
+            new_part_table.insert(*key, boot_a.clone());
+        }
+        else if part.name == "boot_b" {
+            new_part_table.insert(*key, boot_b.clone());
+        }
+    }
+
+    disk.update_partitions(new_part_table);
+
+    let _final_res = disk.write_inplace();
+    match _final_res {
+        Ok(_final_res) => println!("Successfully wrote changes to disk"),
+        Err(e) => panic!("{}", e),
+    }
 }

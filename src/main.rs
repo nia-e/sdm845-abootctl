@@ -1,7 +1,6 @@
-use clap::{Arg, App, SubCommand};
+use clap::{Arg, App};
 use modular_bitfield::prelude::*;
 use std::convert::TryInto;
-use std::process;
 
 mod partitions;
 
@@ -68,7 +67,7 @@ fn main() {
 }
 
 fn get_slot_info(debug: bool) -> (u64, u64, SlotInfo, SlotInfo) {
-    let (boot_a, boot_b) = partitions::get_boot_partitions();
+    let (boot_a, boot_b, _) = partitions::get_boot_partitions();
     if debug { println!("boot_a: {:#018b} boot_b: {:#018b}", boot_a.flags >> 48, boot_b.flags >> 48); }
     let slot_a = SlotInfo::from_bytes([(((boot_a.flags >> 48) & 0xFF)).try_into().unwrap()]);
     let slot_b = SlotInfo::from_bytes([(((boot_b.flags >> 48) & 0xFF)).try_into().unwrap()]);
@@ -77,28 +76,26 @@ fn get_slot_info(debug: bool) -> (u64, u64, SlotInfo, SlotInfo) {
 
 fn set_slot(slot: &i32, flags_a: u64, flags_b: u64) {
 
+    let new_flags_a;
+    let new_flags_b;
+
     if *slot as i32 == 0 {
         //Change _a and _b boot partition flags
-        let new_flags_a = enable_aboot(flags_a);
-        let new_flags_b = disable_aboot(flags_b);
+        new_flags_a = enable_aboot(flags_a);
+        new_flags_b = disable_aboot(flags_b);
     }
-     else if *slot as i32 == 1 {
-         //Same as above
-         let new_flags_b = enable_aboot(flags_a);
-         let new_flags_a = disable_aboot(flags_a);
+    else if *slot as i32 == 1 {
+        //Same as above
+        new_flags_b = enable_aboot(flags_a);
+        new_flags_a = disable_aboot(flags_a);
     }
     else { panic!("Error: could not read partition table headers or invalid slot number specified"); }
 
     //Get actual boot partition objects
-    let (boot_a, boot_b) = partitions::get_boot_partitions();
-
-
-    // new_boot_a.flags = boot_a_flags;
-    // new_boot_b.flags = boot_b_flags;
-    // partitions.insert(BOOT_A_PARTNUM, new_boot_a);
-    // partitions.insert(BOOT_B_PARTNUM, new_boot_b);
-    // disk.update_partitions(partitions).unwrap();
-    // disk.write().unwrap();
+    let (mut boot_a, mut boot_b, path) = partitions::get_boot_partitions();
+    boot_a.flags = new_flags_a;
+    boot_b.flags = new_flags_b;
+    partitions::set_boot_partitions(boot_a, boot_b, path);
 }
 
 fn enable_aboot(bootflags: u64) -> u64 {

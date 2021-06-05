@@ -121,7 +121,8 @@ dependencies = [
 [[package]]
 name = "gpt"
 version = "2.0.0"
-source = "git+https://github.com/calebccff/gpt?branch=unknown-partition-type#a16033a64b2e0a5f0ccd78f1af6c44a70e715023"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8a30b0e3659ffee31427c4aaa68c1e5115c8c86ba71ff11da5a16e5b70f3471d"
 dependencies = [
  "bitflags",
  "crc",
