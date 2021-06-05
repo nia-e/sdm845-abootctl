@@ -86,20 +86,15 @@ fn get_slot_info(debug: bool) -> (u64, u64, SlotInfo, SlotInfo) {
 }
 
 fn set_slot(slot: &i32, flags_a: u64, flags_b: u64) {
-    let new_flags_a;
-    let new_flags_b;
-
-    if *slot as i32 == 0 {
+    let (new_flags_a, new_flags_b) = if *slot as i32 == 0 {
         //Change _a and _b boot partition flags
-        new_flags_a = enable_aboot(flags_a);
-        new_flags_b = disable_aboot(flags_b);
+        (enable_aboot(flags_a), disable_aboot(flags_b))
     } else if *slot as i32 == 1 {
         //Same as above
-        new_flags_b = enable_aboot(flags_b);
-        new_flags_a = disable_aboot(flags_a);
+        (enable_aboot(flags_b), disable_aboot(flags_a))
     } else {
         panic!("Error: could not read partition table headers or invalid slot number specified");
-    }
+    };
 
     //Get actual boot partition objects
     let (mut boot_a, mut boot_b, path) = partitions::get_boot_partitions();
