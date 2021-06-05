@@ -18,7 +18,7 @@ fn main() {
     // CLI stuff
     //Ideas: -r read-only (default), --set or -s set to SLOT, --debug dump all flags
     let matches = App::new("abootctl")
-        .version("0.4.0")
+        .version("0.5.0")
         .author("Caleb C. <caleb@connolly.tech>, Aissa Z. B. <aissa.zenaida@pm.me>")
         .about("Switch active bootloader slot on SDM845 OnePlus devices. THIS MAY BRICK YOUR DEVICE - USE WITH CARE")
         .arg(Arg::with_name("mode")
