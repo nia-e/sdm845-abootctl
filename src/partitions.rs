@@ -5,7 +5,7 @@ use std::io;
 use std::path::Path;
 
 fn get_partitions_for_dev(dev_path: &Path) -> Result<BTreeMap<u32, Partition>, io::Error> {
-    println!("Testing path {}", dev_path.display());
+    //println!("Testing path {}", dev_path.display());
     let size = disk::LogicalBlockSize::Lb4096;
     let header = gpt::header::read_header(dev_path, size);
     match header {
@@ -64,8 +64,9 @@ pub fn get_boot_partitions() -> (Partition, Partition, String) {
     );
 }
 
-pub fn set_boot_partitions(boot_a: Partition, boot_b: Partition, path: String) {
+pub fn set_boot_partitions(boot_a: Partition, boot_b: Partition) {
     //Opens relevant stuff
+    let (_, _, path) = get_boot_partitions();
     let path = Path::new(&path);
     let config = gpt::GptConfig::new();
     let config = config.writable(true); //config needs to be shadowed here for some reason

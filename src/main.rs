@@ -1,6 +1,7 @@
 use clap::{App, Arg, SubCommand, AppSettings};
 use modular_bitfield::prelude::*;
 use std::convert::TryInto;
+use std::process;
 
 mod partitions;
 
@@ -15,13 +16,7 @@ struct SlotInfo {
     boot_successful: B1,
     is_unbootable: B1,
 }
-/*
-arg_enum!{
-    enum Mode {
-        r,
-        w
-    }
-}*/
+
 fn main() {
     // CLI stuff
     let matches = App::new("abootctl")
@@ -38,7 +33,7 @@ fn main() {
         .subcommand(SubCommand::with_name("get-current-slot")
             .about("Prints currently running SLOT")
             .display_order(3))
-        .subcommand(SubCommand::with_name("mark-boot-succesful")
+        .subcommand(SubCommand::with_name("mark-boot-successful")
             .about("Mark current slot as GOOD")
             .display_order(4))
         .subcommand(SubCommand::with_name("set-active-boot-slot")
@@ -76,89 +71,94 @@ fn main() {
                 .index(1)
                 .possible_values(&["0", "1"]))
             .display_order(9))
-        /*
-        .arg(Arg::with_name("mode")
-            .short("m")
-            .long("mode")
-            .default_value("r")
-            .possible_values(&Mode::variants())
-            .value_name("MODE")
-            .help("Mode of operation"))
-        .arg(Arg::with_name("slot")
-            .short("s")
-            .long("slot")
-            .required(true)
-            .possible_values(&["0", "1"])
-            .value_name("SLOT")
-            .help("Slot - sets as active boot slot if in write mode, reads slot data if in read mode"))
-        .arg(Arg::with_name("debug")
-            .long("debug")
-            .help("Dumps entire header for boot partitions to standard output"))
-        */
         .get_matches();
 
-    //TODO: read bootable flag option
-    /*
-    let mode = value_t!(matches, "MODE", Mode).unwrap_or_else(|x| x.exit());
-    let slot = value_t!(matches, "SLOT", i32).unwrap_or_else(|x| x.exit());
-    let debug = matches.is_present("debug");
-
-    let (flags_a, flags_b, slot_a, slot_b) = get_slot_info(debug);
-
-    if mode == Mode::r {
-        println!("Slot A info: {:?}", slot_a);
-        println!("Slot B info: {:?}", slot_b);
-    } else {
-        set_slot(&slot, flags_a, flags_b);
-    }*/
+    match matches.subcommand_name() {
+        Some("hal-info") => { println!("HAL Version: linux.hardware.boot@1.0::abootctl"); },
+        Some("get-number-slots") => { /* if let (_, _, _) = partitions::get_boot_partitions() { */ println!("2"); /* } else { println!("1"); } */ },
+        Some("get-current-slot") => { println!("{}", get_current_slot()); },
+        Some("mark-boot-successful") => { mark_successful(get_current_slot()); },
+        Some("set-active-boot-slot") => { set_slot(matches.value_of("SLOT").unwrap().parse::<i32>().unwrap()); },
+        Some("set-slot-as-unbootable") => { mark_unbootable(matches.value_of("SLOT").unwrap().parse::<i32>().unwrap()); },
+        Some("is-slot-bootable") => { process::exit(is_bootable(matches.value_of("SLOT").unwrap().parse::<i32>().unwrap()) as i32); },
+        Some("is-slot-marked-successful") => { process::exit(is_successful(matches.value_of("SLOT").unwrap().parse::<i32>().unwrap()) as i32); },
+        Some("get-suffix") => { println!("{}", get_suffix(matches.value_of("SLOT").unwrap().parse::<i32>().unwrap())); },
+        _ => { process::exit(64); } //Android does it this way idk
+    }
 }
 
-fn get_slot_info(debug: bool) -> (u64, u64, SlotInfo, SlotInfo) {
+fn get_slot_info() -> (SlotInfo, SlotInfo) {
     let (boot_a, boot_b, _) = partitions::get_boot_partitions();
-    if debug {
-        println!(
-            "boot_a: {:#018b} boot_b: {:#018b}",
-            boot_a.flags >> 48,
-            boot_b.flags >> 48
-        );
-    }
     let slot_a = SlotInfo::from_bytes([((boot_a.flags >> 48) & 0xFF).try_into().unwrap()]);
     let slot_b = SlotInfo::from_bytes([((boot_b.flags >> 48) & 0xFF).try_into().unwrap()]);
-    return (boot_a.flags >> 48, boot_b.flags >> 48, slot_a, slot_b);
+    return (slot_a, slot_b);
 }
 
-fn set_slot(slot: &i32, flags_a: u64, flags_b: u64) {
-    let (new_flags_a, new_flags_b) = if *slot as i32 == 0 {
-        //Change _a and _b boot partition flags
-        (enable_aboot(flags_a), disable_aboot(flags_b))
-    } else if *slot as i32 == 1 {
-        //Same as above
-        (enable_aboot(flags_b), disable_aboot(flags_a))
-    } else {
-        panic!("Error: could not read partition table headers or invalid slot number specified");
-    };
-
-    //Get actual boot partition objects
-    let (mut boot_a, mut boot_b, path) = partitions::get_boot_partitions();
-    boot_a.flags = new_flags_a;
-    boot_b.flags = new_flags_b;
-    partitions::set_boot_partitions(boot_a, boot_b, path);
+fn get_current_slot() -> i32 {
+    let (slot_a, slot_b) = get_slot_info();
+    if (slot_a.is_active() == 1) && (slot_b.is_active() == 0) { return 0; }
+    else if (slot_a.is_active() == 0) && (slot_b.is_active() == 1) { return 1; }
+    else { panic!("Corrupted headers; none or both partitions marked active"); }
 }
 
-fn enable_aboot(bootflags: u64) -> u64 {
-    //Sets 5th bit to 1, sets active boot partition
-    let mut tmp_bootflags = bootflags;
-    tmp_bootflags |=
-        0b0000_1000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000;
-    //KEEPING THIS OFF FOR NOW, MAY BRICK IF ENABLED
-    //bootflags &= 0b1111_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000;
-    return tmp_bootflags;
+fn mark_successful(slot: i32) {
+    let (mut slot_a, mut slot_b) = get_slot_info();
+    let (mut boot_a, mut boot_b, _) = partitions::get_boot_partitions();
+    match slot {
+        0 => { slot_a.set_boot_successful(1); boot_a.flags = (slot_a.into_bytes()[0] as u64) << 48; },
+        1 => { slot_b.set_boot_successful(1); boot_b.flags = (slot_b.into_bytes()[0] as u64) << 48; },
+        _ => panic!("This should never be reached"),
+    }
+    partitions::set_boot_partitions(boot_a, boot_b);
 }
 
-fn disable_aboot(bootflags: u64) -> u64 {
-    //Sets 5th bit to 0, unsets active boot partition
-    let mut tmp_bootflags = bootflags;
-    tmp_bootflags &=
-        0b1111_0111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111;
-    return tmp_bootflags;
+fn mark_unbootable(slot: i32) {
+    let (mut slot_a, mut slot_b) = get_slot_info();
+    let (mut boot_a, mut boot_b, _) = partitions::get_boot_partitions();
+    match slot {
+        0 => { slot_a.set_is_unbootable(1); boot_a.flags = (slot_a.into_bytes()[0] as u64) << 48; },
+        1 => { slot_b.set_is_unbootable(1); boot_b.flags = (slot_b.into_bytes()[0] as u64) << 48; },
+        _ => { panic!("This should never be reached either"); },
+    }
+    partitions::set_boot_partitions(boot_a, boot_b);
+}
+
+fn is_bootable(slot: i32) -> bool {
+    let (slot_a, slot_b) = get_slot_info();
+    match slot {
+        0 => { if slot_a.is_unbootable() != 0 { return true; } else { return false; }; },
+        1 => { if slot_b.is_unbootable() != 0 { return true; } else { return false; }; },
+        _ => { panic!("This should really never be reached"); },
+    }
+}
+
+fn is_successful(slot: i32) -> bool {
+    let (slot_a, slot_b) = get_slot_info();
+    match slot {
+        0 => { if slot_a.boot_successful() == 0 { return true; } else { return false; } },
+        1 => { if slot_b.boot_successful() == 0 { return true; } else { return false; }; },
+        _ => { panic!("This should really never be reached"); },
+    }
+}
+
+fn get_suffix(slot: i32) -> String {
+    match slot {
+        0 => { return "_a".to_string(); },
+        1 => { return "_b".to_string(); },
+        _ => { panic!("Seriously how did this happen"); },
+    }
+}
+
+fn set_slot(slot: i32) {
+    let (mut boot_a, mut boot_b, _) = partitions::get_boot_partitions();
+    let mut flags_a = SlotInfo::from_bytes([((boot_a.flags << 48) & 0xFF).try_into().unwrap()]);
+    let mut flags_b = SlotInfo::from_bytes([((boot_b.flags << 48) & 0xFF).try_into().unwrap()]);
+
+    if slot == 0 { flags_a.set_is_active(1); flags_b.set_is_active(0); }
+    else if slot == 1 { flags_a.set_is_active(0); flags_b.set_is_active(1); }
+    else { panic!("Error: could not read partition table headers"); };
+
+    boot_a.flags = (flags_a.into_bytes()[0] as u64) << 48;
+    boot_b.flags = (flags_b.into_bytes()[0] as u64) << 48;
+    partitions::set_boot_partitions(boot_a, boot_b);
 }
