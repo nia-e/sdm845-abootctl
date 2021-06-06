@@ -1,4 +1,4 @@
-use clap::{App, Arg, arg_enum, value_t};
+use clap::{App, Arg, SubCommand, AppSettings};
 use modular_bitfield::prelude::*;
 use std::convert::TryInto;
 
@@ -15,19 +15,68 @@ struct SlotInfo {
     boot_successful: B1,
     is_unbootable: B1,
 }
-
+/*
 arg_enum!{
     enum Mode {
         r,
         w
     }
-}
+}*/
 fn main() {
     // CLI stuff
     let matches = App::new("abootctl")
-        .version("0.5.0")
+        .version("0.6.0")
         .author("Aissa Z. B. <aissa.zenaida@pm.me>, Caleb C. <caleb@connolly.tech>")
-        .about("Switch active bootloader slot on SDM845 OnePlus devices. THIS MAY BRICK YOUR DEVICE - USE WITH CARE")
+        .about("Bootloader control for SDM845 OnePlus devices. CLI arguments compatible with Android bootctl. THIS MAY BRICK YOUR DEVICE - USE WITH CARE")
+        .setting(AppSettings::ArgRequiredElseHelp)
+        .subcommand(SubCommand::with_name("hal-info")
+            .about("Show info about boot_control HAL used")
+            .display_order(1))
+        .subcommand(SubCommand::with_name("get-number-slots")
+            .about("Prints number of slots")
+            .display_order(2))
+        .subcommand(SubCommand::with_name("get-current-slot")
+            .about("Prints currently running SLOT")
+            .display_order(3))
+        .subcommand(SubCommand::with_name("mark-boot-succesful")
+            .about("Mark current slot as GOOD")
+            .display_order(4))
+        .subcommand(SubCommand::with_name("set-active-boot-slot")
+            .about("On next boot, load and execute SLOT")
+            .arg(Arg::with_name("SLOT")
+                .required(true)
+                .index(1)
+                .possible_values(&["0", "1"]))
+            .display_order(5))
+        .subcommand(SubCommand::with_name("set-slot-as-unbootable")
+            .about("Mark SLOT as invalid")
+            .arg(Arg::with_name("SLOT")
+                .required(true)
+                .index(1)
+                .possible_values(&["0", "1"]))
+            .display_order(6))
+        .subcommand(SubCommand::with_name("is-slot-bootable")
+            .about("Returns 0 only if SLOT is bootable")
+            .arg(Arg::with_name("SLOT")
+                .required(true)
+                .index(1)
+                .possible_values(&["0", "1"]))
+            .display_order(7))
+        .subcommand(SubCommand::with_name("is-slot-marked-successful")
+            .about("Returns 0 only if SLOT is marked GOOD")
+            .arg(Arg::with_name("SLOT")
+                .required(true)
+                .index(1)
+                .possible_values(&["0", "1"]))
+            .display_order(8))
+        .subcommand(SubCommand::with_name("get-suffix")
+            .about("Prints suffix for SLOT")
+            .arg(Arg::with_name("SLOT")
+                .required(true)
+                .index(1)
+                .possible_values(&["0", "1"]))
+            .display_order(9))
+        /*
         .arg(Arg::with_name("mode")
             .short("m")
             .long("mode")
@@ -45,9 +94,11 @@ fn main() {
         .arg(Arg::with_name("debug")
             .long("debug")
             .help("Dumps entire header for boot partitions to standard output"))
+        */
         .get_matches();
 
     //TODO: read bootable flag option
+    /*
     let mode = value_t!(matches, "MODE", Mode).unwrap_or_else(|x| x.exit());
     let slot = value_t!(matches, "SLOT", i32).unwrap_or_else(|x| x.exit());
     let debug = matches.is_present("debug");
@@ -59,7 +110,7 @@ fn main() {
         println!("Slot B info: {:?}", slot_b);
     } else {
         set_slot(&slot, flags_a, flags_b);
-    }
+    }*/
 }
 
 fn get_slot_info(debug: bool) -> (u64, u64, SlotInfo, SlotInfo) {
