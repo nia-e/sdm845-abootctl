@@ -15,4 +15,4 @@ OPTIONS:
     -m, --mode <MODE>    Mode of operation (r/w)
     -s, --slot <SLOT>    Slot - sets as active boot slot if in write mode, reads slot data if in read mode
 ```
-Written by Caleb C. <caleb@connolly.tech> and Aissa Z. B. <aissa.zenaida@pm.me>
+Written by Aissa Z. B. <aissa.zenaida@pm.me> and Caleb C. <caleb@connolly.tech>
