@@ -1,4 +1,4 @@
-use clap::{App, Arg, SubCommand, AppSettings};
+use clap::{App, AppSettings, Arg, SubCommand};
 use modular_bitfield::prelude::*;
 use std::convert::TryInto;
 use std::process;
@@ -74,16 +74,44 @@ fn main() {
         .get_matches();
 
     match matches.subcommand_name() {
-        Some("hal-info") => { println!("HAL Version: linux.hardware.boot@1.0::abootctl"); },
-        Some("get-number-slots") => { /* if let (_, _, _) = partitions::get_boot_partitions() { */ println!("2"); /* } else { println!("1"); } */ },
-        Some("get-current-slot") => { println!("{}", get_current_slot()); },
-        Some("mark-boot-successful") => { mark_successful(get_current_slot()); },
-        Some("set-active-boot-slot") => { set_slot(matches.value_of("SLOT").unwrap().parse::<i32>().unwrap()); },
-        Some("set-slot-as-unbootable") => { mark_unbootable(matches.value_of("SLOT").unwrap().parse::<i32>().unwrap()); },
-        Some("is-slot-bootable") => { process::exit(is_bootable(matches.value_of("SLOT").unwrap().parse::<i32>().unwrap()) as i32); },
-        Some("is-slot-marked-successful") => { process::exit(is_successful(matches.value_of("SLOT").unwrap().parse::<i32>().unwrap()) as i32); },
-        Some("get-suffix") => { println!("{}", get_suffix(matches.value_of("SLOT").unwrap().parse::<i32>().unwrap())); },
-        _ => { process::exit(64); } //Android does it this way idk
+        Some("hal-info") => {
+            println!("HAL Version: linux.hardware.boot@1.0::abootctl");
+        }
+        Some("get-number-slots") => {
+            /* if let (_, _, _) = partitions::get_boot_partitions() { */
+            println!("2"); /* } else { println!("1"); } */
+        }
+        Some("get-current-slot") => {
+            println!("{}", get_current_slot());
+        }
+        Some("mark-boot-successful") => {
+            mark_successful(get_current_slot());
+        }
+        Some("set-active-boot-slot") => {
+            set_slot(matches.value_of("SLOT").unwrap().parse::<i32>().unwrap());
+        }
+        Some("set-slot-as-unbootable") => {
+            mark_unbootable(matches.value_of("SLOT").unwrap().parse::<i32>().unwrap());
+        }
+        Some("is-slot-bootable") => {
+            process::exit(
+                is_bootable(matches.value_of("SLOT").unwrap().parse::<i32>().unwrap()) as i32,
+            );
+        }
+        Some("is-slot-marked-successful") => {
+            process::exit(
+                is_successful(matches.value_of("SLOT").unwrap().parse::<i32>().unwrap()) as i32,
+            );
+        }
+        Some("get-suffix") => {
+            println!(
+                "{}",
+                get_suffix(matches.value_of("SLOT").unwrap().parse::<i32>().unwrap())
+            );
+        }
+        _ => {
+            process::exit(64);
+        } //Android does it this way idk
     }
 }
 
@@ -96,17 +124,27 @@ fn get_slot_info() -> (SlotInfo, SlotInfo) {
 
 fn get_current_slot() -> i32 {
     let (slot_a, slot_b) = get_slot_info();
-    if (slot_a.is_active() == 1) && (slot_b.is_active() == 0) { return 0; }
-    else if (slot_a.is_active() == 0) && (slot_b.is_active() == 1) { return 1; }
-    else { panic!("Corrupted headers; none or both partitions marked active"); }
+    if (slot_a.is_active() == 1) && (slot_b.is_active() == 0) {
+        return 0;
+    } else if (slot_a.is_active() == 0) && (slot_b.is_active() == 1) {
+        return 1;
+    } else {
+        panic!("Corrupted headers; none or both partitions marked active");
+    }
 }
 
 fn mark_successful(slot: i32) {
     let (mut slot_a, mut slot_b) = get_slot_info();
     let (mut boot_a, mut boot_b, _) = partitions::get_boot_partitions();
     match slot {
-        0 => { slot_a.set_boot_successful(1); boot_a.flags = (slot_a.into_bytes()[0] as u64) << 48; },
-        1 => { slot_b.set_boot_successful(1); boot_b.flags = (slot_b.into_bytes()[0] as u64) << 48; },
+        0 => {
+            slot_a.set_boot_successful(1);
+            boot_a.flags = (slot_a.into_bytes()[0] as u64) << 48;
+        }
+        1 => {
+            slot_b.set_boot_successful(1);
+            boot_b.flags = (slot_b.into_bytes()[0] as u64) << 48;
+        }
         _ => panic!("This should never be reached"),
     }
     partitions::set_boot_partitions(boot_a, boot_b);
@@ -116,9 +154,17 @@ fn mark_unbootable(slot: i32) {
     let (mut slot_a, mut slot_b) = get_slot_info();
     let (mut boot_a, mut boot_b, _) = partitions::get_boot_partitions();
     match slot {
-        0 => { slot_a.set_is_unbootable(1); boot_a.flags = (slot_a.into_bytes()[0] as u64) << 48; },
-        1 => { slot_b.set_is_unbootable(1); boot_b.flags = (slot_b.into_bytes()[0] as u64) << 48; },
-        _ => { panic!("This should never be reached either"); },
+        0 => {
+            slot_a.set_is_unbootable(1);
+            boot_a.flags = (slot_a.into_bytes()[0] as u64) << 48;
+        }
+        1 => {
+            slot_b.set_is_unbootable(1);
+            boot_b.flags = (slot_b.into_bytes()[0] as u64) << 48;
+        }
+        _ => {
+            panic!("This should never be reached either");
+        }
     }
     partitions::set_boot_partitions(boot_a, boot_b);
 }
@@ -126,26 +172,60 @@ fn mark_unbootable(slot: i32) {
 fn is_bootable(slot: i32) -> bool {
     let (slot_a, slot_b) = get_slot_info();
     match slot {
-        0 => { if slot_a.is_unbootable() != 0 { return true; } else { return false; }; },
-        1 => { if slot_b.is_unbootable() != 0 { return true; } else { return false; }; },
-        _ => { panic!("This should really never be reached"); },
+        0 => {
+            if slot_a.is_unbootable() != 0 {
+                return true;
+            } else {
+                return false;
+            };
+        }
+        1 => {
+            if slot_b.is_unbootable() != 0 {
+                return true;
+            } else {
+                return false;
+            };
+        }
+        _ => {
+            panic!("This should really never be reached");
+        }
     }
 }
 
 fn is_successful(slot: i32) -> bool {
     let (slot_a, slot_b) = get_slot_info();
     match slot {
-        0 => { if slot_a.boot_successful() == 0 { return true; } else { return false; } },
-        1 => { if slot_b.boot_successful() == 0 { return true; } else { return false; }; },
-        _ => { panic!("This should really never be reached"); },
+        0 => {
+            if slot_a.boot_successful() == 0 {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        1 => {
+            if slot_b.boot_successful() == 0 {
+                return true;
+            } else {
+                return false;
+            };
+        }
+        _ => {
+            panic!("This should really never be reached");
+        }
     }
 }
 
 fn get_suffix(slot: i32) -> String {
     match slot {
-        0 => { return "_a".to_string(); },
-        1 => { return "_b".to_string(); },
-        _ => { panic!("Seriously how did this happen"); },
+        0 => {
+            return "_a".to_string();
+        }
+        1 => {
+            return "_b".to_string();
+        }
+        _ => {
+            panic!("Seriously how did this happen");
+        }
     }
 }
 
@@ -154,9 +234,15 @@ fn set_slot(slot: i32) {
     let mut flags_a = SlotInfo::from_bytes([((boot_a.flags << 48) & 0xFF).try_into().unwrap()]);
     let mut flags_b = SlotInfo::from_bytes([((boot_b.flags << 48) & 0xFF).try_into().unwrap()]);
 
-    if slot == 0 { flags_a.set_is_active(1); flags_b.set_is_active(0); }
-    else if slot == 1 { flags_a.set_is_active(0); flags_b.set_is_active(1); }
-    else { panic!("Error: could not read partition table headers"); };
+    if slot == 0 {
+        flags_a.set_is_active(1);
+        flags_b.set_is_active(0);
+    } else if slot == 1 {
+        flags_a.set_is_active(0);
+        flags_b.set_is_active(1);
+    } else {
+        panic!("Error: could not read partition table headers");
+    };
 
     boot_a.flags = (flags_a.into_bytes()[0] as u64) << 48;
     boot_b.flags = (flags_b.into_bytes()[0] as u64) << 48;
