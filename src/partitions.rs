@@ -46,17 +46,6 @@ pub fn get_boot_partitions() -> (Partition, Partition, String) {
         .unwrap()
         .clone();
 
-    // for dev_path in blockdevs {
-    // 	let header = gpt::header::read_header(dev_path.as_path(), size).unwrap();
-    // 	let mut partitions = gpt::partition::read_partitions(dev_path.as_path(), &header, size).unwrap();
-    // 	let res = partitions.values().try_find(|x| x.name == "boot_a");
-    // 	if res.is_err() {
-    // 		continue;
-    // 	}
-    // }
-
-    // let boot_a = partitions.values().find(|x| x.name == "boot_a").unwrap();
-
     return (
         boot_a,
         boot_b,
@@ -64,33 +53,36 @@ pub fn get_boot_partitions() -> (Partition, Partition, String) {
     );
 }
 
-pub fn set_boot_partitions(boot_a: Partition, boot_b: Partition) {
-    //Opens relevant stuff
-    let (_, _, path) = get_boot_partitions();
+pub fn set_boot_partition(new_partition: Partition, path: &str) {
     let path = Path::new(&path);
-    let config = gpt::GptConfig::new();
-    let config = config.writable(true); //config needs to be shadowed here for some reason
-    let mut disk = config.open(path).unwrap(); //Should be fine since for this function to run get_boot_partitions() must have succeeded
+    let config = gpt::GptConfig::new().writable(true);
+
+    let mut disk = config.open(path).unwrap();
     let part_table = disk.partitions();
+
     let mut new_part_table = part_table.clone();
 
-    for (key, part) in part_table.iter() {
-        if part.name == "boot_a" {
-            new_part_table.insert(*key, boot_a.clone());
-        } else if part.name == "boot_b" {
-            new_part_table.insert(*key, boot_b.clone());
+    if !part_table
+        .values()
+        .any(|partition| partition.name == new_partition.name)
+    {
+        panic!("Partition {} not found!", new_partition.name);
+    }
+
+    for (key, partition) in part_table.into_iter() {
+        if partition.name == new_partition.name {
+            new_part_table.insert(*key, new_partition.clone());
+            break;
         }
     }
 
-    let _part_res = disk.update_partitions(new_part_table);
-    match _part_res {
-        Ok(_part_res) => println!("Updated partition table"),
-        Err(e) => panic!("{}", e),
+    match disk.update_partitions(new_part_table) {
+        Ok(_) => println!("Updated partition table"),
+        Err(e) => panic!("Error while updating partitions: {}", e),
     }
 
-    let _final_res = disk.write_inplace();
-    match _final_res {
-        Ok(_final_res) => println!("Successfully wrote changes to disk"),
-        Err(e) => panic!("{}", e),
+    match disk.write_inplace() {
+        Ok(_) => println!("Changes successfully written to disk"),
+        Err(e) => panic!("Error while writing changes to disk: {}", e),
     }
 }

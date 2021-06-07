@@ -135,7 +135,7 @@ fn get_current_slot() -> i32 {
 
 fn mark_successful(slot: i32) {
     let (mut slot_a, mut slot_b) = get_slot_info();
-    let (mut boot_a, mut boot_b, _) = partitions::get_boot_partitions();
+    let (mut boot_a, mut boot_b, path) = partitions::get_boot_partitions();
     match slot {
         0 => {
             slot_a.set_boot_successful(1);
@@ -147,12 +147,13 @@ fn mark_successful(slot: i32) {
         }
         _ => panic!("This should never be reached"),
     }
-    partitions::set_boot_partitions(boot_a, boot_b);
+    partitions::set_boot_partition(boot_a, &path);
+    partitions::set_boot_partition(boot_b, &path);
 }
 
 fn mark_unbootable(slot: i32) {
     let (mut slot_a, mut slot_b) = get_slot_info();
-    let (mut boot_a, mut boot_b, _) = partitions::get_boot_partitions();
+    let (mut boot_a, mut boot_b, path) = partitions::get_boot_partitions();
     match slot {
         0 => {
             slot_a.set_is_unbootable(1);
@@ -166,7 +167,8 @@ fn mark_unbootable(slot: i32) {
             panic!("This should never be reached either");
         }
     }
-    partitions::set_boot_partitions(boot_a, boot_b);
+    partitions::set_boot_partition(boot_a, &path);
+    partitions::set_boot_partition(boot_b, &path)
 }
 
 fn is_bootable(slot: i32) -> bool {
@@ -230,7 +232,7 @@ fn get_suffix(slot: i32) -> String {
 }
 
 fn set_slot(slot: i32) {
-    let (mut boot_a, mut boot_b, _) = partitions::get_boot_partitions();
+    let (mut boot_a, mut boot_b, path) = partitions::get_boot_partitions();
     let mut flags_a = SlotInfo::from_bytes([((boot_a.flags << 48) & 0xFF).try_into().unwrap()]);
     let mut flags_b = SlotInfo::from_bytes([((boot_b.flags << 48) & 0xFF).try_into().unwrap()]);
 
@@ -246,5 +248,6 @@ fn set_slot(slot: i32) {
 
     boot_a.flags = (flags_a.into_bytes()[0] as u64) << 48;
     boot_b.flags = (flags_b.into_bytes()[0] as u64) << 48;
-    partitions::set_boot_partitions(boot_a, boot_b);
+    partitions::set_boot_partition(boot_a, &path);
+    partitions::set_boot_partition(boot_b, &path);
 }
