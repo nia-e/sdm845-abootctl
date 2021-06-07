@@ -114,7 +114,7 @@ fn main() {
         } //Android does it this way idk
     }
 }
-//test
+
 fn get_slot_info() -> (SlotInfo, SlotInfo) {
     let (boot_a, boot_b, _) = partitions::get_boot_partitions();
     let slot_a = SlotInfo::from_bytes([((boot_a.flags >> 48) & 0xFF).try_into().unwrap()]);
