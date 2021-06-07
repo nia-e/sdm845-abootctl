@@ -6,8 +6,8 @@ use std::process;
 mod partitions;
 
 #[bitfield(bits = 8)]
-#[derive(Debug)]
-struct SlotInfo {
+#[derive(Debug,Clone)]
+pub struct SlotInfo {
     #[skip]
     __: B2,
     is_active: B1,
@@ -16,6 +16,25 @@ struct SlotInfo {
     boot_successful: B1,
     is_unbootable: B1,
 }
+
+pub trait BootSlot {
+	fn from_boot_flags(flags: u64) -> SlotInfo;
+	fn get_boot_flags(&self) -> u64;
+}
+
+impl BootSlot for SlotInfo {
+	fn from_boot_flags(flags: u64) -> SlotInfo {
+		let slot = SlotInfo::from_bytes([((flags >> 48) & 0xFF).try_into().unwrap()]);
+        println!("SlotInfo: {:?}", slot);
+        return slot;
+	}
+
+	fn get_boot_flags(&self) -> u64 {
+		return (self.clone().into_bytes()[0] as u64) << 48;
+	}
+}
+
+
 
 fn main() {
     // CLI stuff
@@ -106,7 +125,7 @@ fn main() {
         Some("get-suffix") => {
             println!(
                 "{}",
-                get_suffix(matches.subcommand_matches("get_suffix").unwrap().value_of("SLOT").unwrap().parse::<i32>().unwrap())
+                get_suffix(matches.subcommand_matches("get-suffix").unwrap().value_of("SLOT").unwrap().parse::<i32>().unwrap())
             );
         }
         _ => {
@@ -117,8 +136,8 @@ fn main() {
 
 fn get_slot_info() -> (SlotInfo, SlotInfo) {
     let (boot_a, boot_b, _) = partitions::get_boot_partitions();
-    let slot_a = SlotInfo::from_bytes([((boot_a.flags >> 48) & 0xFF).try_into().unwrap()]);
-    let slot_b = SlotInfo::from_bytes([((boot_b.flags >> 48) & 0xFF).try_into().unwrap()]);
+    let slot_a = SlotInfo::from_boot_flags(boot_a.flags);
+    let slot_b = SlotInfo::from_boot_flags(boot_b.flags);
     return (slot_a, slot_b);
 }
 
@@ -139,11 +158,11 @@ fn mark_successful(slot: i32) {
     match slot {
         0 => {
             slot_a.set_boot_successful(1);
-            boot_a.flags = (slot_a.into_bytes()[0] as u64) << 48;
+            boot_a.flags = slot_a.get_boot_flags();
         }
         1 => {
             slot_b.set_boot_successful(1);
-            boot_b.flags = (slot_b.into_bytes()[0] as u64) << 48;
+            boot_b.flags = slot_b.get_boot_flags();
         }
         _ => panic!("This should never be reached"),
     }
@@ -157,11 +176,11 @@ fn mark_unbootable(slot: i32) {
     match slot {
         0 => {
             slot_a.set_is_unbootable(1);
-            boot_a.flags = (slot_a.into_bytes()[0] as u64) << 48;
+            boot_a.flags = slot_a.get_boot_flags();
         }
         1 => {
             slot_b.set_is_unbootable(1);
-            boot_b.flags = (slot_b.into_bytes()[0] as u64) << 48;
+            boot_b.flags = slot_b.get_boot_flags();
         }
         _ => {
             panic!("This should never be reached either");
@@ -173,48 +192,54 @@ fn mark_unbootable(slot: i32) {
 
 fn is_bootable(slot: i32) -> bool {
     let (slot_a, slot_b) = get_slot_info();
+    let mut unbootable = false;
     match slot {
         0 => {
-            if slot_a.is_unbootable() != 0 {
-                return true;
+            if slot_a.is_unbootable() == 0 {
+                unbootable = true;
             } else {
-                return false;
+                unbootable = false;
             };
         }
         1 => {
-            if slot_b.is_unbootable() != 0 {
-                return true;
+            if slot_b.is_unbootable() == 0 {
+                unbootable = true;
             } else {
-                return false;
+                unbootable = false;
             };
         }
         _ => {
             panic!("This should really never be reached");
         }
     }
+    println!("Slot {} is unbootable: {}", slot, unbootable);
+    return unbootable;
 }
 
 fn is_successful(slot: i32) -> bool {
     let (slot_a, slot_b) = get_slot_info();
+    let mut successful = false;
     match slot {
         0 => {
-            if slot_a.boot_successful() == 0 {
-                return true;
+            if slot_a.boot_successful() == 1 {
+                successful = true;
             } else {
-                return false;
+                successful = false;
             }
         }
         1 => {
-            if slot_b.boot_successful() == 0 {
-                return true;
+            if slot_b.boot_successful() == 1 {
+                successful = true;
             } else {
-                return false;
+                successful = false;
             };
         }
         _ => {
             panic!("This should really never be reached");
         }
     }
+    println!("Slot {} marked suceessful: {}", slot, successful);
+    return successful;
 }
 
 fn get_suffix(slot: i32) -> String {
@@ -233,21 +258,21 @@ fn get_suffix(slot: i32) -> String {
 
 fn set_slot(slot: i32) {
     let (mut boot_a, mut boot_b, path) = partitions::get_boot_partitions();
-    let mut flags_a = SlotInfo::from_bytes([((boot_a.flags << 48) & 0xFF).try_into().unwrap()]);
-    let mut flags_b = SlotInfo::from_bytes([((boot_b.flags << 48) & 0xFF).try_into().unwrap()]);
+    let mut slot_a = SlotInfo::from_boot_flags(boot_a.flags);
+    let mut slot_b = SlotInfo::from_boot_flags(boot_b.flags);
 
     if slot == 0 {
-        flags_a.set_is_active(1);
-        flags_b.set_is_active(0);
+        slot_a.set_is_active(1);
+        slot_b.set_is_active(0);
     } else if slot == 1 {
-        flags_a.set_is_active(0);
-        flags_b.set_is_active(1);
+        slot_a.set_is_active(0);
+        slot_b.set_is_active(1);
     } else {
         panic!("Error: could not read partition table headers");
     };
 
-    boot_a.flags = (flags_a.into_bytes()[0] as u64) << 48;
-    boot_b.flags = (flags_b.into_bytes()[0] as u64) << 48;
+    boot_a.flags = slot_a.get_boot_flags();
+    boot_b.flags = slot_b.get_boot_flags();
     partitions::set_boot_partition(boot_a, &path);
     partitions::set_boot_partition(boot_b, &path);
 }

@@ -54,8 +54,11 @@ pub fn get_boot_partitions() -> (Partition, Partition, String) {
 }
 
 pub fn set_boot_partition(new_partition: Partition, path: &str) {
+    println!("Path: {}", path);
     let path = Path::new(&path);
-    let config = gpt::GptConfig::new().writable(true);
+    let config = gpt::GptConfig::new()
+        .logical_block_size(disk::LogicalBlockSize::Lb4096)
+        .writable(true);
 
     let mut disk = config.open(path).unwrap();
     let part_table = disk.partitions();
@@ -71,10 +74,14 @@ pub fn set_boot_partition(new_partition: Partition, path: &str) {
 
     for (key, partition) in part_table.into_iter() {
         if partition.name == new_partition.name {
+            println!("Partition name {} matches updated partition {}", partition.name, new_partition.name);
             new_part_table.insert(*key, new_partition.clone());
             break;
         }
     }
+
+    println!("NOT WRITING TO DISK!!!");
+    println!("{:?}", new_part_table);
 
     match disk.update_partitions(new_part_table) {
         Ok(_) => println!("Updated partition table"),

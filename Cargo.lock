@@ -121,8 +121,7 @@ dependencies = [
 [[package]]
 name = "gpt"
 version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a30b0e3659ffee31427c4aaa68c1e5115c8c86ba71ff11da5a16e5b70f3471d"
+source = "git+https://github.com/Quyzi/gpt#f8dd37ae11d61cbd6b84019e18d8ba02c2cc85cf"
 dependencies = [
  "bitflags",
  "crc",
