@@ -88,25 +88,25 @@ fn main() {
             mark_successful(get_current_slot());
         }
         Some("set-active-boot-slot") => {
-            set_slot(matches.value_of("SLOT").unwrap().parse::<i32>().unwrap());
+            set_slot(matches.subcommand_matches("set-active-boot-slot").unwrap().value_of("SLOT").unwrap().parse::<i32>().unwrap());
         }
         Some("set-slot-as-unbootable") => {
-            mark_unbootable(matches.value_of("SLOT").unwrap().parse::<i32>().unwrap());
+            mark_unbootable(matches.subcommand_matches("set-slot-as-unbootable").unwrap().value_of("SLOT").unwrap().parse::<i32>().unwrap());
         }
         Some("is-slot-bootable") => {
             process::exit(
-                is_bootable(matches.value_of("SLOT").unwrap().parse::<i32>().unwrap()) as i32,
+                is_bootable(matches.subcommand_matches("is-slot-bootable").unwrap().value_of("SLOT").unwrap().parse::<i32>().unwrap()) as i32,
             );
         }
         Some("is-slot-marked-successful") => {
             process::exit(
-                is_successful(matches.value_of("SLOT").unwrap().parse::<i32>().unwrap()) as i32,
+                is_successful(matches.subcommand_matches("is-slot-marked-successful").unwrap().value_of("SLOT").unwrap().parse::<i32>().unwrap()) as i32,
             );
         }
         Some("get-suffix") => {
             println!(
                 "{}",
-                get_suffix(matches.value_of("SLOT").unwrap().parse::<i32>().unwrap())
+                get_suffix(matches.subcommand_matches("get_suffix").unwrap().value_of("SLOT").unwrap().parse::<i32>().unwrap())
             );
         }
         _ => {
