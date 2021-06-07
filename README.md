@@ -1,4 +1,7 @@
 # sdm845-abootctl
+
+# PROJECT MOVED TO GITLAB: https://gitlab.com/sdm845-mainline/abootctl
+
 Utility to control boot slots on OnePlus SDM845 devices from mainline Linux by flipping the relevant bits in the GPT partition table flags. Heavily WIP, but barebones functionality should be present soon.
 
 WARNING: DO NOT USE YET. THIS MAY BRICK YOUR DEVICE, WIPE YOUR PARTITION TABLE, OR AWAKEN THE GREAT OLD ONES OF R'LYEH. NO MATTER WHAT THIS UTILITY CAUSES, MATERIAL OR ESOTERIC, YOU HAVE BEEN WARNED.
